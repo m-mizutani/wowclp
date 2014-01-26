@@ -37,6 +37,20 @@ import shlex
 import time
 import datetime
 
+def resolv_power_type(pt):
+    pt_map = {
+        -2: 'health',
+        0: 'mana',
+        1: 'rage',
+        2: 'focus',
+        3: 'energy',
+        4: 'pet happiness',
+        5: 'runes',
+        6: 'runic power'
+    }
+    return pt_map.get(pt)
+
+
 '''
 ---------------------------------------------------------
 Prefix Parser Set
@@ -112,7 +126,7 @@ class EnergizeParser:
     def parse(self, cols):
         return {
             'amount': cols[0],
-            'powerType': cols[1],
+            'powerType': resolv_power_type(cols[1]),
         }
 
 class DrainParser:
@@ -120,16 +134,7 @@ class DrainParser:
     def parse(self, cols):
         return {
             'amount': cols[0],
-            'powerType': cols[1],
-            'extraAmount': cols[2],
-        }
-
-class DrainParser:
-    def __init__(self): pass
-    def parse(self, cols):
-        return {
-            'amount': cols[0],
-            'powerType': cols[1],
+            'powerType': resolv_power_type(cols[1]),
             'extraAmount': cols[2],
         }
 
@@ -138,7 +143,7 @@ class LeechParser:
     def parse(self, cols):
         return {
             'amount': cols[0],
-            'powerType': cols[1],
+            'powerType': resolv_power_type(cols[1]),
             'extraAmount': cols[2],
         }
 
@@ -347,7 +352,8 @@ class Parser:
         obj.update(res)
         obj.update(suffix_psr.parse(remain))
 
-        if obj['destName'] == 'Muret' and obj['event'] == 'SPELL_HEAL': 
+        # if obj['destName'] == 'Muret' and obj['event'] == 'SPELL_HEAL': 
+        if obj['event'] == 'SPELL_DISPEL':
             for i in range(len(cols)):
                 print i, cols[i]
             print obj
