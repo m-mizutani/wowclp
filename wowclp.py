@@ -124,6 +124,7 @@ class HealParser:
 class EnergizeParser:
     def __init__(self): pass
     def parse(self, cols):
+        cols = cols[8:]
         return {
             'amount': cols[0],
             'powerType': resolv_power_type(cols[1]),
@@ -132,6 +133,7 @@ class EnergizeParser:
 class DrainParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 3: print cols
         return {
             'amount': cols[0],
             'powerType': resolv_power_type(cols[1]),
@@ -141,6 +143,7 @@ class DrainParser:
 class LeechParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 3: print cols
         return {
             'amount': cols[0],
             'powerType': resolv_power_type(cols[1]),
@@ -150,6 +153,7 @@ class LeechParser:
 class SpellBlockParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 3 and len(cols) != 4: print cols
         obj = {
             'extraSpellID': cols[0],
             'extraSpellName': cols[1],
@@ -161,6 +165,7 @@ class SpellBlockParser:
 class ExtraAttackParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 1: print cols
         return {
             'amount': cols[0]
         }
@@ -168,15 +173,34 @@ class ExtraAttackParser:
 class AuraParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) > 4:
+            print self.raw
+            print cols
+
         obj = {
-            'auraType': cols[0]
+            'auraType': cols[0],
         }
-        if len(cols) == 2: obj['amount'] = cols[1]
+        # 'auraSchool': cols[1],
+        # 'auraType': cols[2],
+
+        if len(cols) >= 2: obj['amount'] = cols[1]
+        if len(cols) >= 3: obj['auraExtra1'] = cols[2] # Not sure this column 
+        if len(cols) >= 4: obj['auraExtra2'] = cols[3] # Not sure this column 
+        return obj
+
+class AuraDoseParser:
+    def __init__(self): pass
+    def parse(self, cols):
+        obj = {
+            'auraType': cols[0],
+        }
+        if len(cols) == 2: obj['powerType'] = resolv_power_type(cols[1]) 
         return obj
 
 class AuraBrokenParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 4: print cols
         return {
             'extraSpellID': cols[0],
             'extraSpellName': cols[1],
@@ -187,6 +211,7 @@ class AuraBrokenParser:
 class CastFailedParser:
     def __init__(self): pass
     def parse(self, cols):
+        if len(cols) != 1: print cols
         return {
             'failedType': cols[0],
         }
@@ -253,9 +278,9 @@ class Parser:
             '_EXTRA_ATTACKS': ExtraAttackParser(),
             '_AURA_APPLIED': AuraParser(),
             '_AURA_REMOVED': AuraParser(),
-            '_AURA_APPLIED_DOSE': AuraParser(),
-            '_AURA_REMOVED_DOSE': AuraParser(),
-            '_AURA_REFRESH': AuraParser(),
+            '_AURA_APPLIED_DOSE': AuraDoseParser(),
+            '_AURA_REMOVED_DOSE': AuraDoseParser(),
+            '_AURA_REFRESH': AuraDoseParser(),
             '_AURA_BROKEN': AuraParser(),
             '_AURA_BROKEN_SPELL': AuraBrokenParser(),
             '_CAST_START': VoidSuffixParser(),
@@ -300,7 +325,15 @@ class Parser:
         splitter = shlex.shlex(csv_txt, posix=True)
         splitter.whitespace = ','
         splitter.whitespace_split = True
-        return self.parse_cols(ts, list(splitter))
+        cols = list(splitter)
+        obj = self.parse_cols(ts, cols)
+
+        '''
+        if obj['event'] == 'SPELL_AURA_APPLIED': 
+            print obj
+            for i in range(len(cols)): print i, cols[i]
+'''
+        return obj
 
 
     def parse_cols(self, ts, cols):
@@ -350,16 +383,16 @@ class Parser:
 
         (res, remain) = prefix_psr.parse(cols[9:])
         obj.update(res)
+        suffix_psr.raw = cols
         obj.update(suffix_psr.parse(remain))
 
         # if obj['destName'] == 'Muret' and obj['event'] == 'SPELL_HEAL': 
+        '''
         if obj['event'] == 'SPELL_DISPEL':
-            for i in range(len(cols)):
-                print i, cols[i]
             print obj
+        '''
 
         return obj
-
 
     def read_file(self, fname):
         for line in open(fname, 'r'):
@@ -371,7 +404,8 @@ if __name__ == '__main__':
     import sys
     p = Parser()
     for arg in sys.argv[1:]:
-        for a in p.read_file(arg): pass
+        for a in p.read_file(arg):
+            pass
 
-                # print a['timestamp'], a['event'], a['sourceName'], a['amount']
+
 
