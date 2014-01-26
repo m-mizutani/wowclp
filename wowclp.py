@@ -199,6 +199,18 @@ class EnchantParser:
             'itemName': cols[2],
         }, cols)
 
+class EncountParser:
+    def __init__(self): pass
+    def parse(self, cols):
+        obj = {
+            'encounterID': cols[0],
+            'encounterName': cols[1],
+            'difficultyID': cols[2],
+            'groupSize': cols[3],
+        }
+        if len(cols) == 5: obj['success'] = (cols[4] == '1')
+        return obj
+
 class VoidParser:
     def __init__(self): pass
     def parse(self, cols): return ({}, cols)
@@ -259,18 +271,31 @@ class Parser:
             'UNIT_DIED': (VoidParser(), VoidSuffixParser()),
             'UNIT_DESTROYED': (VoidParser(), VoidSuffixParser()),
         }
+        self.enc_event = {
+            'ENCOUNTER_START': EncountParser(),
+            'ENCOUNTER_END': EncountParser(),
+        }
 
     def parse_line(self, cols):
-        if len(cols) < 9: raise Exception('invalid format, ' + repr(cols))
-
         head = cols[0].split(' ')
         if len(head) != 4: raise Exception('invalid head format, ' + repr(cols))
 
         s = '{2} {0[0]:02d}/{0[1]:02d} {1}'.format(map(int, head[0].split('/')), head[1][:-4], datetime.datetime.today().year)
         d = datetime.datetime.strptime(s, '%Y %m/%d %H:%M:%S')
         ts = time.mktime(d.timetuple()) + float(head[1][-4:])
+        event = head[3]
+
+        if self.enc_event.get(event):
+            obj = {
+                'timestamp': ts,
+                'event': event,
+            }
+            obj.update(self.enc_event[event].parse(cols[1:]))
+            print obj
+            return obj
+
         obj = {'timestamp': ts,
-               'event': head[3],
+               'event': event,
                'sourceGUID':   cols[1],
                'sourceName':   cols[2],
                'sourceFlags':  cols[3],
@@ -279,6 +304,8 @@ class Parser:
                'destName':   cols[6],
                'destFlags':  cols[7],
                'destFlags2': cols[8]}
+
+        if len(cols) < 9: raise Exception('invalid format, ' + repr(cols))
 
         suffix = ''
         prefix_psr = None
@@ -299,9 +326,18 @@ class Parser:
                     (prefix_psr, suffix_psr) = psrs
                     break
 
+        if prefix_psr is None or suffix_psr is None:
+            raise Exception('Unknown event format, ' + repr(cols))
+
         (res, remain) = prefix_psr.parse(cols[9:])
         obj.update(res)
         obj.update(suffix_psr.parse(remain))
+
+        if obj['destName'] == 'Muret' and obj['event'] == 'SPELL_HEAL': 
+            for i in range(len(cols)):
+                print i, cols[i]
+            print obj
+
         return obj
 
 
@@ -314,4 +350,6 @@ if __name__ == '__main__':
     p = Parser()
     for arg in sys.argv[1:]:
         for a in p.read_file(arg):
-            print a
+            pass
+                # print a['timestamp'], a['event'], a['sourceName'], a['amount']
+
