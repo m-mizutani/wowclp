@@ -50,6 +50,48 @@ def resolv_power_type(pt):
     }
     return pt_map.get(pt)
 
+def parse_unit_flag(flag):
+    if isinstance(flag, str): f = int(flag, 0)
+    else: f = flag
+
+    res = []
+    if f == 0: return res
+
+    flag_map = {
+        0x00004000: 'TYPE_OBJECT',
+        0x00002000: 'TYPE_GUARDIAN',
+        0x00001000: 'TYPE_PET',
+        0x00000800: 'TYPE_NPC',
+        0x00000400: 'TYPE_PLAYER',
+        0x00000200: 'CONTROL_NPC',
+        0x00000100: 'CONTROL_PLAYER',
+        0x00000040: 'REACTION_HOSTILE',
+        0x00000020: 'REACTION_NEUTRAL',
+        0x00000010: 'REACTION_FRIENDLY',
+        0x00000008: 'AFFILIATION_OUTSIDER',
+        0x00000004: 'AFFILIATION_RAID',
+        0x00000002: 'AFFILIATION_PARTY',
+        0x00000001: 'AFFILIATION_MINE',
+        0x08000000: 'RAIDTARGET8',
+        0x04000000: 'RAIDTARGET7',
+        0x02000000: 'RAIDTARGET6',
+        0x01000000: 'RAIDTARGET5',
+        0x00800000: 'RAIDTARGET4',
+        0x00400000: 'RAIDTARGET3',
+        0x00200000: 'RAIDTARGET2',
+        0x00100000: 'RAIDTARGET1',
+        0x00080000: 'MAINASSIST',
+        0x00040000: 'MAINTANK',
+        0x00020000: 'FOCUS',
+        0x00010000: 'TARGET',
+    }
+
+    for (k, v) in flag_map.iteritems():
+        if (f & k) > 0: res.append(v)
+
+    # print f, '->', repr(res)
+    return res
+    
 
 '''
 ---------------------------------------------------------
@@ -352,12 +394,12 @@ class Parser:
                'event': event,
                'sourceGUID':   cols[1],
                'sourceName':   cols[2],
-               'sourceFlags':  cols[3],
-               'sourceFlags2': cols[4],
+               'sourceFlags':  parse_unit_flag(cols[3]),
+               'sourceFlags2': parse_unit_flag(cols[4]),
                'destGUID':   cols[5],
                'destName':   cols[6],
-               'destFlags':  cols[7],
-               'destFlags2': cols[8]}
+               'destFlags':  parse_unit_flag(cols[7]),
+               'destFlags2': parse_unit_flag(cols[8])}
 
         suffix = ''
         prefix_psr = None
