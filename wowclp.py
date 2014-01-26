@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 Reference: http://www.wowwiki.com/API_COMBAT_LOG_EVENT
 '''
 
-import csv
+import shlex
 import time
 import datetime
 
@@ -73,6 +73,7 @@ Suffix Parser Set
 class DamageParser:        
     def __init__(self): pass
     def parse(self, cols):
+        cols = cols[8:]
         return {
             'amount': cols[0],
             'overkill': cols[1],
@@ -80,9 +81,9 @@ class DamageParser:
             'resisted': cols[3],
             'blocked': cols[4],
             'absorbed': cols[5],
-            'critical': (cols[6] == '1'),
-            'glancing': (cols[7] == '1'),
-            'crushing': (cols[8] == '1'),
+            'critical': (cols[6] != 'nil'),
+            'glancing': (cols[7] != 'nil'),
+            'crushing': (cols[8] != 'nil'),
         }
 
 class MissParser:
@@ -98,11 +99,12 @@ class MissParser:
 class HealParser:
     def __init__(self): pass
     def parse(self, cols):
+        cols = cols[8:]
         return {
             'amount': cols[0],
             'overhealing': cols[1],
             'absorbed': cols[2],
-            'critical': cols[3],
+            'critical': (cols[3] != 'nil'),
         }
 
 class EnergizeParser:
@@ -276,14 +278,28 @@ class Parser:
             'ENCOUNTER_END': EncountParser(),
         }
 
-    def parse_line(self, cols):
-        head = cols[0].split(' ')
-        if len(head) != 4: raise Exception('invalid head format, ' + repr(cols))
 
-        s = '{2} {0[0]:02d}/{0[1]:02d} {1}'.format(map(int, head[0].split('/')), head[1][:-4], datetime.datetime.today().year)
+    def parse_line(self, line):
+        terms = line.split(' ')
+        if len(terms) < 4: raise Exception('invalid format, ' + line)
+
+        # split timestamp
+        s = '{2} {0[0]:02d}/{0[1]:02d} {1}'.format(map(int, terms[0].split('/')), 
+                                                   terms[1][:-4], 
+                                                   datetime.datetime.today().year)
         d = datetime.datetime.strptime(s, '%Y %m/%d %H:%M:%S')
-        ts = time.mktime(d.timetuple()) + float(head[1][-4:])
-        event = head[3]
+        ts = time.mktime(d.timetuple()) + float(terms[1][-4:])
+
+        # split CSV data
+        csv_txt = ' '.join(terms[3:]).strip()
+        splitter = shlex.shlex(csv_txt, posix=True)
+        splitter.whitespace = ','
+        splitter.whitespace_split = True
+        return self.parse_cols(ts, list(splitter))
+
+
+    def parse_cols(self, ts, cols):
+        event = cols[0]
 
         if self.enc_event.get(event):
             obj = {
@@ -291,9 +307,9 @@ class Parser:
                 'event': event,
             }
             obj.update(self.enc_event[event].parse(cols[1:]))
-            print obj
             return obj
 
+        if len(cols) < 8: raise Exception('invalid format, ' + repr(cols))
         obj = {'timestamp': ts,
                'event': event,
                'sourceGUID':   cols[1],
@@ -305,24 +321,22 @@ class Parser:
                'destFlags':  cols[7],
                'destFlags2': cols[8]}
 
-        if len(cols) < 9: raise Exception('invalid format, ' + repr(cols))
-
         suffix = ''
         prefix_psr = None
         suffix_psr = None
 
         matches = []
         for (k, p) in self.ev_prefix.iteritems():
-            if obj['event'].startswith(k): matches.append(k)
+            if event.startswith(k): matches.append(k)
 
         if len(matches) > 0:
             prefix = max(matches, key=len)
             prefix_psr = self.ev_prefix[prefix]
-            suffix = obj['event'][len(prefix):]
+            suffix = event[len(prefix):]
             suffix_psr = self.ev_suffix[suffix]
         else:
             for (k, psrs) in self.sp_event.iteritems():
-                if obj['event'] == k:
+                if event == k:
                     (prefix_psr, suffix_psr) = psrs
                     break
 
@@ -342,14 +356,16 @@ class Parser:
 
 
     def read_file(self, fname):
-        for cols in csv.reader(open(fname, 'r')):
-            yield self.parse_line(cols)
+        for line in open(fname, 'r'):
+            yield self.parse_line(line)
+            
+
 
 if __name__ == '__main__':
     import sys
     p = Parser()
     for arg in sys.argv[1:]:
-        for a in p.read_file(arg):
-            pass
+        for a in p.read_file(arg): pass
+
                 # print a['timestamp'], a['event'], a['sourceName'], a['amount']
 
