@@ -91,7 +91,26 @@ def parse_unit_flag(flag):
 
     # print f, '->', repr(res)
     return res
+
+def parse_school_flag(school):
+    s = int(school, 0) if isinstance(school, str) else school
     
+    res = []
+    school_map = {
+        0x1: 'Physical',
+        0x2: 'Holy',
+        0x4: 'Fire',
+        0x8: 'Nature',
+        0x10: 'Frost',
+        0x20: 'Shadow',
+        0x40: 'Arcane',
+    }
+
+    for (k, v) in school_map.iteritems():
+        if (s & k) > 0: res.append(v)
+
+    return res
+
 
 '''
 ---------------------------------------------------------
@@ -105,7 +124,7 @@ class SpellParser:
         return ({
             'spellId': cols[0],
             'spellName': cols[1],
-            'spellSchool': cols[2]
+            'spellSchool': parse_school_flag(cols[2])
         }, cols[3:])
 
 class EnvParser:
@@ -133,7 +152,7 @@ class DamageParser:
         return {
             'amount': cols[0],
             'overkill': cols[1],
-            'school': cols[2],
+            'school': parse_school_flag(cols[2]),
             'resisted': cols[3],
             'blocked': cols[4],
             'absorbed': cols[5],
@@ -199,7 +218,7 @@ class SpellBlockParser:
         obj = {
             'extraSpellID': cols[0],
             'extraSpellName': cols[1],
-            'extraSchool': cols[2],
+            'extraSchool': parse_school_flag(cols[2]),
         }
         if len(cols) == 4: obj['auraType'] = cols[3]
         return obj
@@ -246,7 +265,7 @@ class AuraBrokenParser:
         return {
             'extraSpellID': cols[0],
             'extraSpellName': cols[1],
-            'extraSchool': cols[2],
+            'extraSchool': parse_school_flag(cols[2]),
             'auraType': cols[3],
         }
 
