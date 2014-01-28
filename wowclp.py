@@ -150,12 +150,12 @@ class DamageParser:
     def parse(self, cols):
         cols = cols[8:]
         return {
-            'amount': cols[0],
+            'amount': int(cols[0]),
             'overkill': cols[1],
             'school': parse_school_flag(cols[2]),
-            'resisted': cols[3],
-            'blocked': cols[4],
-            'absorbed': cols[5],
+            'resisted': int(cols[3]),
+            'blocked': int(cols[4]),
+            'absorbed': int(cols[5]),
             'critical': (cols[6] != 'nil'),
             'glancing': (cols[7] != 'nil'),
             'crushing': (cols[8] != 'nil'),
@@ -168,7 +168,7 @@ class MissParser:
             'missType': cols[0]
         }
         if len(cols) > 1: obj['isOffHand'] = cols[1]
-        if len(cols) > 2: obj['amountMissed'] = cols[2]
+        if len(cols) > 2: obj['amountMissed'] = int(cols[2])
         return obj
 
 class HealParser:
@@ -176,9 +176,9 @@ class HealParser:
     def parse(self, cols):
         cols = cols[8:]
         return {
-            'amount': cols[0],
-            'overhealing': cols[1],
-            'absorbed': cols[2],
+            'amount': int(cols[0]),
+            'overhealing': int(cols[1]),
+            'absorbed': int(cols[2]),
             'critical': (cols[3] != 'nil'),
         }
 
@@ -187,7 +187,7 @@ class EnergizeParser:
     def parse(self, cols):
         cols = cols[8:]
         return {
-            'amount': cols[0],
+            'amount': int(cols[0]),
             'powerType': resolv_power_type(cols[1]),
         }
 
@@ -196,9 +196,9 @@ class DrainParser:
     def parse(self, cols):
         if len(cols) != 3: print cols
         return {
-            'amount': cols[0],
+            'amount': int(cols[0]),
             'powerType': resolv_power_type(cols[1]),
-            'extraAmount': cols[2],
+            'extraAmount': int(cols[2]),
         }
 
 class LeechParser:
@@ -206,9 +206,9 @@ class LeechParser:
     def parse(self, cols):
         if len(cols) != 3: print cols
         return {
-            'amount': cols[0],
+            'amount': int(cols[0]),
             'powerType': resolv_power_type(cols[1]),
-            'extraAmount': cols[2],
+            'extraAmount': int(cols[2]),
         }
 
 class SpellBlockParser:
@@ -228,7 +228,7 @@ class ExtraAttackParser:
     def parse(self, cols):
         if len(cols) != 1: print cols
         return {
-            'amount': cols[0]
+            'amount': int(cols[0])
         }
 
 class AuraParser:
@@ -244,7 +244,7 @@ class AuraParser:
         # 'auraSchool': cols[1],
         # 'auraType': cols[2],
 
-        if len(cols) >= 2: obj['amount'] = cols[1]
+        if len(cols) >= 2: obj['amount'] = int(cols[1])
         if len(cols) >= 3: obj['auraExtra1'] = cols[2] # Not sure this column 
         if len(cols) >= 4: obj['auraExtra2'] = cols[3] # Not sure this column 
         return obj
